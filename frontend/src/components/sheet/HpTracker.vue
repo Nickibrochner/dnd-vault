@@ -42,7 +42,7 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-sm">
-        <select v-if="x.hitDice.length > 1" v-model.number="die" class="field !w-auto !p-2" aria-label="Terning">
+        <select v-if="x.hitDice.length > 1" v-model.number="die" class="field !w-auto !p-2" >
           <option v-for="h in x.hitDice" :key="h.die" :value="h.die">d{{ h.die }}</option>
         </select>
         <input v-model.number="hitDieRoll" type="number" :min="1" :max="activeDie" class="field !w-20 !p-2 font-mono" aria-label="Hit die-slag">
