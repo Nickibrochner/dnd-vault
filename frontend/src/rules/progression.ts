@@ -227,7 +227,7 @@ export const PROGRESSION: Record<string, ClassProgression> = {
     scaling: level => (level >= 5 ? { speedBonus: 10 } : {}),
     features: {
       2: [
-        { name: 'Danger Sense', text: 'Advantage på DEX-saves, medmindre du er incapacitated.' },
+        { name: 'Danger Sense', text: 'Advantage på DEX-saves, medmindre du er incapacitated.', effects: { saveAdvantage: { abilities: ['dex'], note: 'Danger Sense – medmindre du er incapacitated' } } },
         { name: 'Reckless Attack', text: 'Advantage på STR-angreb denne tur – men angreb mod dig har advantage til din næste tur.' },
       ],
       3: [{ name: 'Primal Knowledge', text: 'Én ekstra Barbarian-skill; under Rage kan du bruge STR til Acrobatics, Intimidation, Perception, Stealth og Survival.' }],

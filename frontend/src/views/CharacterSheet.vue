@@ -37,6 +37,7 @@
           <router-link :to="`/character/${charId}/level-up`" class="px-3 py-2 rounded text-sm bg-red-600 hover:bg-red-500 text-white">Level up</router-link>
           <router-link :to="`/builder/${charId}`" class="btn-secondary">Redigér</router-link>
           <button
+            v-if="tab !== 'rettelser'"
             type="button"
             class="btn-secondary"
             :class="editLayout && '!border-red-500 !text-red-300'"
@@ -79,8 +80,8 @@
         >{{ t.name }}<span v-if="t.count" class="ml-1.5 text-xs text-gray-500">{{ t.count }}</span></router-link>
       </nav>
 
-      <InventoryTab v-if="tab === 'udstyr'" />
-      <SpellsTab v-else-if="tab === 'spells'" />
+      <InventoryTab v-if="tab === 'udstyr'" :edit-layout="editLayout" />
+      <SpellsTab v-else-if="tab === 'spells'" :edit-layout="editLayout" />
       <OverridesTab v-else-if="tab === 'rettelser'" />
 
       <template v-else>
@@ -102,36 +103,14 @@
         </button>
       </section>
 
-      <p v-if="editLayout" class="text-sm text-gray-400">
-        Træk panelerne rundt – eller brug pilene. Layoutet gemmes med karakteren.
-        <button type="button" class="underline text-gray-300 ml-2" @click="store.play.layout = null">Nulstil layout</button>
-      </p>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div
-          v-for="(column, ci) in layout"
-          :key="ci"
-          class="space-y-6 min-h-[4rem] rounded-lg"
-          :class="editLayout && 'outline-dashed outline-1 outline-gray-700 p-2'"
-          @dragover.prevent
-          @drop="dropAt(ci, column.length)"
-        >
-          <div
-            v-for="(id, pi) in column"
-            :key="id"
-            :draggable="editLayout"
-            class="relative"
-            :class="[editLayout && 'cursor-move ring-1 ring-gray-600 rounded-lg', dragging === id && 'opacity-40']"
-            @dragstart="dragging = id"
-            @dragend="dragging = null"
-            @dragover.prevent
-            @drop.stop="dropAt(ci, pi)"
-          >
-            <div v-if="editLayout" class="absolute -top-3 right-2 z-10 flex gap-1">
-              <span class="tag bg-gray-900 text-gray-300 border-gray-600">⠿ {{ PANEL_NAMES[id] }}</span>
-              <button v-for="m in MOVES" :key="m.label" type="button" class="tag bg-gray-900 text-gray-300 border-gray-600 hover:border-red-500" :title="m.title" @click="move(id, m.dc, m.dp)">{{ m.label }}</button>
-            </div>
-
+      <PanelLayout
+        v-model:stored="store.play.layout"
+        :defaults="DEFAULT_LAYOUT"
+        :names="PANEL_NAMES"
+        :editing="editLayout"
+        cols-class="lg:grid-cols-3"
+      >
+        <template #default="{ id }">
             <!-- Panelerne -->
             <section v-if="id === 'abilities'" class="panel">
               <div class="grid grid-cols-3 gap-2">
@@ -147,14 +126,31 @@
               <h3 class="section-title">Saving Throws</h3>
               <ul class="grid grid-cols-2 gap-1 text-sm">
                 <li v-for="s in x.saves" :key="s.ability" class="flex justify-between" :class="s.proficient ? 'text-gray-100' : 'text-gray-500'">
-                  <span>{{ s.proficient ? '●' : '○' }} {{ abilityShort(s.ability) }}</span><span class="font-mono">{{ signed(s.bonus) }}</span>
+                  <span>
+                    {{ s.proficient ? '●' : '○' }} {{ abilityShort(s.ability) }}
+                    <span v-if="s.advantage.length" class="tag !text-[9px] !px-1 text-emerald-300 border-emerald-700/60" :title="`Advantage: ${s.advantage.join('; ')}`">Adv</span>
+                  </span>
+                  <span class="font-mono">{{ signed(s.bonus) }}</span>
                 </li>
+              </ul>
+              <ul v-if="x.saves.some(s => s.advantage.length)" class="mt-2 space-y-0.5 text-[11px] text-gray-500">
+                <template v-for="s in x.saves" :key="s.ability">
+                  <li v-for="note in s.advantage" :key="note"><span class="text-emerald-300">Adv {{ abilityShort(s.ability) }}:</span> {{ note }}</li>
+                </template>
               </ul>
               <h3 class="section-title mt-5">Skills</h3>
               <ul class="space-y-0.5 text-sm">
-                <li v-for="s in x.skills" :key="s.id" class="flex justify-between" :class="s.proficient ? 'text-gray-100' : 'text-gray-500'">
-                  <span>{{ s.expertise ? '◆' : s.proficient ? '●' : '○' }} {{ s.name }} <span class="text-xs opacity-60">{{ abilityShort(s.ability) }}</span></span>
-                  <span class="font-mono">{{ signed(s.bonus) }}</span>
+                <li
+                  v-for="s in x.skills"
+                  :key="s.id"
+                  class="flex items-baseline gap-2"
+                  :class="s.proficient ? 'text-gray-100' : 'text-gray-500'"
+                  :title="`${abilityShort(s.ability)}-modifier ${signed(x.mods[s.ability])}${s.proficient ? ' + proficiency' : ''}${s.expertise ? ' (expertise)' : ''}`"
+                >
+                  <span class="flex-1 min-w-0 truncate">{{ s.expertise ? '◆' : s.proficient ? '●' : '○' }} {{ s.name }}</span>
+                  <span class="w-8 text-xs opacity-60">{{ abilityShort(s.ability) }}</span>
+                  <span class="w-8 text-right font-mono font-semibold">{{ signed(s.bonus) }}</span>
+                  <span class="w-9 text-right font-mono opacity-70">({{ s.bonus - x.mods[s.ability] ? signed(s.bonus - x.mods[s.ability]) : '–' }})</span>
                 </li>
               </ul>
             </section>
@@ -194,25 +190,26 @@
 
             <section v-else-if="id === 'attacks'" class="panel">
               <h3 class="section-title">Angreb</h3>
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead class="text-left text-[10px] uppercase tracking-wide text-gray-500">
-                    <tr><th class="pb-1">Våben</th><th class="pb-1">Hit</th><th class="pb-1">Damage</th></tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-800">
-                    <tr v-for="a in x.attacks" :key="a.name" :title="a.properties">
-                      <td class="py-1.5 text-gray-100">
-                        {{ a.name }}
-                        <span v-if="a.mastery" class="tag text-emerald-300 border-emerald-700/60 ml-1">{{ a.mastery }}</span>
-                        <span v-if="!a.proficient" class="text-xs text-yellow-500"> (ikke proficient)</span>
-                        <div v-if="a.properties" class="text-[11px] text-gray-500">{{ a.properties }}</div>
-                      </td>
-                      <td class="py-1.5 font-mono">{{ signed(a.toHit) }}</td>
-                      <td class="py-1.5 font-mono whitespace-nowrap">{{ a.damage }} <span class="text-xs text-gray-500">{{ a.type.slice(0, 5) }}.</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <ul class="divide-y divide-gray-700">
+                <li v-for="a in x.attacks" :key="a.name" class="py-2 flex items-center gap-3" :title="a.properties">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-gray-100">
+                      {{ a.name }}
+                      <span v-if="a.mastery" class="tag text-emerald-300 border-emerald-700/60 ml-1">{{ a.mastery }}</span>
+                    </div>
+                    <div v-if="a.properties" class="text-[11px] text-gray-500">{{ a.properties }}</div>
+                    <div v-if="!a.proficient" class="text-xs text-yellow-500">Ikke proficient</div>
+                  </div>
+                  <div class="text-center shrink-0 w-24 rounded border border-gray-600 bg-gray-950 px-1 py-1">
+                    <div class="text-[9px] font-display uppercase tracking-wide text-gray-500">Hit</div>
+                    <div class="text-lg font-bold font-mono leading-7 text-gray-100">{{ signed(a.toHit) }}</div>
+                  </div>
+                  <div class="text-center shrink-0 w-24 rounded border border-red-500/50 bg-red-950 px-1 py-1">
+                    <div class="text-[9px] font-display uppercase tracking-wide text-red-500 truncate" :title="a.type">{{ a.type }}</div>
+                    <div class="text-lg font-bold font-mono leading-7 text-red-500 whitespace-nowrap">{{ a.damage }}</div>
+                  </div>
+                </li>
+              </ul>
               <router-link :to="`/character/${charId}/udstyr`" class="inline-block mt-3 text-xs text-gray-400 underline hover:text-gray-200">
                 Vælg våben og rustning under Udstyr
               </router-link>
@@ -271,9 +268,8 @@
               <h3 class="section-title">Noter</h3>
               <textarea v-model="store.play.notes" rows="5" class="field text-sm" placeholder="Baggrundshistorie, NPC'er, quests…" />
             </section>
-          </div>
-        </div>
-      </div>
+        </template>
+      </PanelLayout>
       </template>
     </template>
   </div>
@@ -293,6 +289,7 @@ import ResourceList from '../components/sheet/ResourceList.vue'
 import SpellsPanel from '../components/sheet/SpellsPanel.vue'
 import SpellsTab from '../components/sheet/SpellsTab.vue'
 import OverridesTab from '../components/sheet/OverridesTab.vue'
+import PanelLayout from '../components/ui/PanelLayout.vue'
 import { useSettings } from '../composables/useSettings'
 
 const route = useRoute()
@@ -302,15 +299,15 @@ const x = computed(() => store.derived)
 const ARMOR_NAMES = { light: 'Light', medium: 'Medium', heavy: 'Heavy', shield: 'Shields' } as const
 
 const settings = useSettings()
-/** Rettelser-fanen findes kun med manuel redigering slået til. */
+/** Rettelser-fanen findes kun med manuel redigering slået til, og Spells kun når karakteren har spells. */
 const tab = computed(() => {
   const t = (route.params.tab as string) || 'ark'
-  return t === 'rettelser' && !settings.manualEditing ? 'ark' : t
+  return TABS.value.some(v => v.id === t) ? t : 'ark'
 })
 const TABS = computed(() => [
   { id: 'ark', name: 'Ark', count: 0 },
   { id: 'udstyr', name: 'Udstyr', count: store.items.length },
-  { id: 'spells', name: 'Spells', count: x.value.spells.length },
+  ...(x.value.spells.length ? [{ id: 'spells', name: 'Spells', count: x.value.spells.length }] : []),
   ...(settings.manualEditing ? [{ id: 'rettelser', name: '✎ Rettelser', count: x.value.overridden.length }] : []),
 ])
 
@@ -367,46 +364,8 @@ const DEFAULT_LAYOUT = [
   ['hp', 'conditions', 'attacks', 'resources', 'log'],
   ['spells', 'features', 'equipment', 'notes'],
 ]
-const MOVES = [
-  { label: '↑', title: 'Flyt op', dc: 0, dp: -1 }, { label: '↓', title: 'Flyt ned', dc: 0, dp: 1 },
-  { label: '←', title: 'Flyt til venstre kolonne', dc: -1, dp: 0 }, { label: '→', title: 'Flyt til højre kolonne', dc: 1, dp: 0 },
-]
 
 const editLayout = ref(false)
-const dragging = ref<string | null>(null)
-
-/** Det gemte layout – ukendte paneler fjernes, og nye paneler tilføjes, så intet forsvinder. */
-const layout = computed<string[][]>(() => {
-  const stored = store.play.layout
-  if (!stored) return DEFAULT_LAYOUT
-  const cols = DEFAULT_LAYOUT.map((_, i) => (stored[i] ?? []).filter(id => id in PANEL_NAMES))
-  const seen = new Set<string>()
-  const unique = cols.map(c => c.filter(id => !seen.has(id) && seen.add(id)))
-  for (const [i, col] of DEFAULT_LAYOUT.entries()) for (const id of col) if (!seen.has(id)) unique[i].push(id)
-  return unique
-})
-
-function placeAt(id: string, col: number, pos: number) {
-  const cols = layout.value.map(c => c.filter(p => p !== id))
-  const target = Math.max(0, Math.min(cols.length - 1, col))
-  cols[target].splice(Math.max(0, Math.min(cols[target].length, pos)), 0, id)
-  store.play.layout = cols
-}
-
-function dropAt(col: number, pos: number) {
-  const id = dragging.value
-  dragging.value = null
-  if (!id) return
-  // Flyttes et panel nedad i samme kolonne, rykker indexet én, når det selv fjernes
-  const from = layout.value[col].indexOf(id)
-  placeAt(id, col, from !== -1 && from < pos ? pos - 1 : pos)
-}
-
-function move(id: string, dc: number, dp: number) {
-  const col = layout.value.findIndex(c => c.includes(id))
-  const pos = layout.value[col].indexOf(id)
-  placeAt(id, col + dc, dc ? layout.value[Math.max(0, Math.min(2, col + dc))].length : pos + dp)
-}
 
 // ---------- Øvrigt ----------
 

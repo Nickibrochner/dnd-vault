@@ -44,11 +44,20 @@
         </label>
       </section>
 
-      <!-- Kort -->
-      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <!-- Kort – kan flyttes rundt med "Tilpas layout" -->
+      <PanelLayout
+        :stored="store.play.tabLayouts.spells"
+        :defaults="defaultLayout"
+        :names="cardNames"
+        :editing="editLayout"
+        :show="shown"
+        cols-class="lg:grid-cols-3"
+        @update:stored="setLayout"
+      >
+        <template #default="{ id }">
         <article
-          v-for="s in visible"
-          :key="`${s.source}-${s.spell.id}`"
+          v-for="s in [byId.get(id)!]"
+          :key="id"
           class="rounded-lg border bg-gradient-to-b from-gray-900 to-gray-950 flex flex-col"
           :class="[SCHOOL_COLORS[s.spell.school], store.play.concentration === s.spell.name && 'ring-2 ring-amber-500']"
         >
@@ -110,7 +119,8 @@
             </div>
           </footer>
         </article>
-      </section>
+        </template>
+      </PanelLayout>
       <p v-if="!visible.length" class="text-gray-500">Ingen spells matcher filtrene.</p>
     </template>
   </div>
@@ -123,7 +133,10 @@ import { abilityShort } from '../../rules/data'
 import { signed, type DerivedSpell } from '../../rules/engine'
 import { PACT_KEY, castOptionLabel, castOptions, castSpell, slotKey, type CastOption } from '../../rules/play'
 import { cantripScaling, durationText, spellDetails, upcastSummary, upcastText } from '../../rules/spellDetails'
+import PanelLayout from '../ui/PanelLayout.vue'
 import Pips from '../ui/Pips.vue'
+
+defineProps<{ editLayout: boolean }>()
 
 const store = useCharacterStore()
 const x = computed(() => store.derived)
@@ -149,6 +162,23 @@ const visible = computed(() => {
     && (!q || `${s.spell.name} ${s.spell.school} ${s.spell.text}`.toLowerCase().includes(q))
     && (!onlyCastable.value || options(s).length > 0))
 })
+
+// ---------- Layout ----------
+
+const cardId = (s: DerivedSpell) => `${s.source}-${s.spell.id}`
+const byId = computed(() => new Map(x.value.spells.map(s => [cardId(s), s])))
+const cardNames = computed(() => Object.fromEntries(x.value.spells.map(s => [cardId(s), s.spell.name])))
+const shown = computed(() => new Set(visible.value.map(cardId)))
+/** Standard: kortene fordeles på skift i tre kolonner, så rækkefølgen læses som et gitter. */
+const defaultLayout = computed(() => {
+  const cols: string[][] = [[], [], []]
+  x.value.spells.forEach((s, i) => cols[i % 3].push(cardId(s)))
+  return cols
+})
+function setLayout(layout: string[][] | null) {
+  const { spells: _, ...rest } = store.play.tabLayouts
+  store.play.tabLayouts = layout ? { ...rest, spells: layout } : rest
+}
 
 /** Højeste slot-level karakteren har (inkl. pact slots). */
 const maxSlot = computed(() => Math.max(x.value.spellcasting?.slots.length ?? 0, x.value.spellcasting?.pact?.level ?? 0))

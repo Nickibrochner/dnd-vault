@@ -62,7 +62,7 @@ export default {
         gold: '#e3c27a',
       },
       fontFamily: {
-        sans: ['Alegreya', 'Georgia', 'Cambria', '"Times New Roman"', 'serif'],
+        sans: ['var(--font-body)', 'Georgia', 'Cambria', '"Times New Roman"', 'serif'],
         display: ['Cinzel', '"Trajan Pro"', 'Georgia', 'serif'],
       },
     },

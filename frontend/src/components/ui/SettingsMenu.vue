@@ -26,6 +26,20 @@
           </span>
         </span>
       </label>
+      <div>
+        <span class="font-semibold text-gray-100">Skrifttype</span>
+        <div class="grid grid-cols-3 gap-1.5 mt-1">
+          <button
+            v-for="f in FONTS"
+            :key="f.id"
+            type="button"
+            class="px-2 py-1.5 rounded border text-sm transition-colors"
+            :class="settings.font === f.id ? 'border-red-500 bg-red-950 text-red-500' : 'border-gray-600 bg-gray-800 text-gray-200 hover:border-gray-500'"
+            :style="{ fontFamily: `'${f.family}'` }"
+            @click="settings.font = f.id"
+          >{{ f.name }}</button>
+        </div>
+      </div>
       <p class="text-[11px] text-gray-500">Gælder kun i denne browser.</p>
     </div>
   </div>
@@ -33,7 +47,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useSettings } from '../../composables/useSettings'
+import { FONTS, useSettings } from '../../composables/useSettings'
 
 const settings = useSettings()
 const open = ref(false)

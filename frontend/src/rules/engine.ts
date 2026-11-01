@@ -1192,7 +1192,8 @@ export interface Derived {
   speed: number
   darkvision: number
   resistances: string[]
-  saves: { ability: Ability; proficient: boolean; bonus: number }[]
+  /** `advantage` er noter om advantage på savet (kilde og evt. betingelse). */
+  saves: { ability: Ability; proficient: boolean; bonus: number; advantage: string[] }[]
   skills: { id: SkillId; name: string; ability: Ability; bonus: number; proficient: boolean; expertise: boolean }[]
   passivePerception: number
   armorTraining: ArmorTraining[]
@@ -1380,7 +1381,8 @@ export function derive(d: CharacterDraft, gear: Gear = startingGear(d)): Derived
   const saveBonus = effects.reduce((s, e) => s + (e.saveBonus ? Math.max(1, mods[e.saveBonus]) : 0), 0)
   const saves = ABILITIES.map(({ key }) => {
     const proficient = allSaves || !!cls?.saves.includes(key) || extraSaves.has(key)
-    return { ability: key, proficient, bonus: mods[key] + (proficient ? pb : 0) + saveBonus }
+    const advantage = effects.flatMap(e => (e.saveAdvantage?.abilities.includes(key) ? [e.saveAdvantage.note] : []))
+    return { ability: key, proficient, bonus: mods[key] + (proficient ? pb : 0) + saveBonus, advantage }
   })
   const profSkills = proficientSkills(d)
   const expertise = new Set(Object.values(d.expertisePicks).flat())

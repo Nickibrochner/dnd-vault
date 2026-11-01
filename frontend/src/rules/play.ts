@@ -66,6 +66,8 @@ export interface PlayState {
   shortRests: number
   /** Arkets kolonner med panel-id'er; null = standardlayout. */
   layout: string[][] | null
+  /** Kolonnelayout for de øvrige faner (fx 'udstyr', 'spells'); mangler en fane, bruges standarden. */
+  tabLayouts: Record<string, string[][]>
   /** Seneste handlinger, så spilleren kan se hvad der blev brugt (nyeste først). */
   log: string[]
 }
@@ -76,7 +78,7 @@ export function emptyPlay(): PlayState {
     deathSaves: { successes: 0, failures: 0 },
     conditions: [], exhaustion: 0, inspiration: false, concentration: null,
     coins: null, extraWeapons: [], items: null, inventory: '', notes: '',
-    lastRest: null, shortRests: 0, layout: null, log: [],
+    lastRest: null, shortRests: 0, layout: null, tabLayouts: {}, log: [],
   }
 }
 
@@ -130,9 +132,16 @@ export function sanitizePlay(input: Partial<PlayState> | null | undefined, x: De
   p.notes = String(p.notes ?? '')
   p.lastRest = p.lastRest && (p.lastRest.type === 'short' || p.lastRest.type === 'long') ? { type: p.lastRest.type, at: String(p.lastRest.at) } : null
   p.shortRests = clamp(p.shortRests || 0, 0, 99)
-  p.layout = Array.isArray(p.layout) && p.layout.every(c => Array.isArray(c)) ? p.layout.map(c => c.filter(id => typeof id === 'string')) : null
+  p.layout = sanitizeLayout(p.layout)
+  p.tabLayouts = Object.fromEntries(Object.entries(p.tabLayouts && typeof p.tabLayouts === 'object' ? p.tabLayouts : {})
+    .map(([tab, l]) => [tab, sanitizeLayout(l)] as const)
+    .filter((e): e is [string, string[][]] => !!e[1]))
   p.log = (Array.isArray(p.log) ? p.log : []).filter(l => typeof l === 'string').slice(0, LOG_SIZE)
   return p
+}
+
+function sanitizeLayout(l: unknown): string[][] | null {
+  return Array.isArray(l) && l.every(c => Array.isArray(c)) ? l.map((c: unknown[]) => c.filter((id): id is string => typeof id === 'string')) : null
 }
 
 const withLog = (p: PlayState, entry: string): PlayState => ({ ...p, log: [entry, ...p.log].slice(0, LOG_SIZE) })

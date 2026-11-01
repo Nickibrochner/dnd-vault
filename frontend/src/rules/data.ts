@@ -96,6 +96,8 @@ export interface OptionEffects {
   saves?: Ability[] | 'all'
   /** Lægger evnens modifier (min. +1) til alle saving throws (Aura of Protection). */
   saveBonus?: Ability
+  /** Advantage på de nævnte saving throws; `note` vises ved savet (kilde og evt. betingelse). */
+  saveAdvantage?: { abilities: Ability[]; note: string }
   skillProficiencies?: SkillId[]
   toolProficiencies?: string[]
   /** Halv proficiency bonus på checks uden proficiency (Jack of All Trades). */
@@ -572,7 +574,7 @@ export const CLASSES: DndClass[] = [
     skillGrant: { count: 2, from: ['animal_handling', 'athletics', 'intimidation', 'nature', 'perception', 'survival'], label: 'Barbarian' },
     armor: ['light', 'medium', 'shield'], martial: 'all', tools: [],
     features: [
-      { name: 'Rage', text: ({ level }) => `${rageUses(level)} brug pr. long rest (ét genvindes ved short rest): +${rageDamage(level)} damage, resistance mod bludgeoning/piercing/slashing og advantage på STR-checks og -saves.` },
+      { name: 'Rage', text: ({ level }) => `${rageUses(level)} brug pr. long rest (ét genvindes ved short rest): +${rageDamage(level)} damage, resistance mod bludgeoning/piercing/slashing og advantage på STR-checks og -saves.`, effects: { saveAdvantage: { abilities: ['str'], note: 'Rage – kun under Rage' } } },
       { name: 'Unarmored Defense', text: 'Uden rustning er din AC 10 + DEX + CON (skjold tilladt).' },
       { name: 'Weapon Mastery', text: 'Brug mastery-egenskaben på 2 slags simple eller martial melee-våben.' },
     ],
