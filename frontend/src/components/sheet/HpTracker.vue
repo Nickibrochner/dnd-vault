@@ -50,7 +50,7 @@
         <button
           type="button"
           :disabled="!diceLeft || !hitDieRoll"
-          class="px-3 py-2 rounded bg-emerald-800 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          class="px-3 py-2 rounded bg-emerald-800 hover:bg-emerald-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
           @click="useHitDie"
         >Brug hit die (+CON {{ signed(x.mods.con) }})</button>
       </div>

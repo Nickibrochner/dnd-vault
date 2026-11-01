@@ -10,7 +10,7 @@
     <template v-else-if="ready">
       <header class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-gray-100">{{ store.draft.name || 'Unavngiven' }}</h2>
+          <h2 class="text-2xl font-bold">{{ store.draft.name || 'Unavngiven' }}</h2>
           <div class="text-gray-400">Level {{ store.level }} {{ [x.species?.name, x.classText].filter(Boolean).join(' ') }}{{ x.subclass && x.classes.length === 1 ? ` · ${x.subclass.name}` : '' }}</div>
         </div>
         <div class="flex items-center gap-3">

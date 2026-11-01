@@ -11,7 +11,7 @@
       <!-- Hoved -->
       <header class="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 class="text-3xl font-bold text-gray-100">{{ store.draft.name || 'Unavngiven' }}</h2>
+          <h2 class="text-3xl font-bold">{{ store.draft.name || 'Unavngiven' }}</h2>
           <div class="text-gray-300">
             Level {{ x.level }} {{ [x.species?.name, x.classText].filter(Boolean).join(' ') }}
             <span v-if="subclassText" class="text-gray-400">({{ subclassText }})</span>
@@ -44,7 +44,7 @@
         class="rounded-lg border px-4 py-2 text-sm flex flex-wrap items-center gap-x-4 gap-y-1 transition-colors"
         :class="[
           store.play.lastRest.type === 'short' ? 'border-amber-700/70 bg-amber-950/40 text-amber-200' : 'border-indigo-700/70 bg-indigo-950/40 text-indigo-200',
-          justRested && 'ring-2 ring-offset-2 ring-offset-gray-900 animate-pulse',
+          justRested && 'ring-2 ring-offset-2 ring-offset-sand animate-pulse',
           justRested && (store.play.lastRest.type === 'short' ? 'ring-amber-400' : 'ring-indigo-400'),
         ]"
       >
@@ -68,7 +68,7 @@
           :key="t.id"
           :to="t.id === 'ark' ? `/character/${charId}` : `/character/${charId}/${t.id}`"
           class="px-4 py-2 text-sm font-medium rounded-t-lg border border-b-0 -mb-px transition-colors"
-          :class="tab === t.id ? 'bg-gray-800 border-gray-700 text-white' : 'border-transparent text-gray-400 hover:text-gray-200'"
+          :class="tab === t.id ? 'bg-gray-900 border-gray-600 text-red-500 font-display font-bold' : 'border-transparent font-display text-gray-400 hover:text-gray-200'"
         >{{ t.name }}<span v-if="t.count" class="ml-1.5 text-xs text-gray-500">{{ t.count }}</span></router-link>
       </nav>
 
@@ -88,7 +88,10 @@
           class="stat text-center transition-colors"
           :class="store.play.inspiration ? '!border-amber-500 !bg-amber-950/40' : 'hover:border-gray-500'"
           @click="store.play.inspiration = !store.play.inspiration"
-        ><dt>Heroic Insp.</dt><dd class="!text-2xl">{{ store.play.inspiration ? '★' : '☆' }}</dd></button>
+        >
+          <span class="block font-display text-xs uppercase tracking-wide text-gray-500">Heroic Insp.</span>
+          <span class="block text-2xl font-bold text-gray-100">{{ store.play.inspiration ? '★' : '☆' }}</span>
+        </button>
       </section>
 
       <p v-if="editLayout" class="text-sm text-gray-400">

@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-5xl mx-auto p-8 mt-6 space-y-8">
     <div class="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-8 text-center">
-      <h2 class="text-3xl font-bold mb-4 text-gray-100">Velkommen til DND Vault</h2>
+      <h2 class="text-3xl font-bold mb-4">Velkommen til DND Vault</h2>
       <p class="text-gray-400 mb-8 text-lg">Byg din næste karakterer – trin for trin.</p>
 
       <div class="flex justify-center space-x-4">
