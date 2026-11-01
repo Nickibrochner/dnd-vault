@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { api, type SheetData } from '../api'
 import {
@@ -16,6 +16,8 @@ export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
 export const useCharacterStore = defineStore('character', () => {
   const characterId = ref<number | null>(null)
+  /** Tidsstempel for karakterbilledet (selve billedet hentes via portraitUrl); null = intet billede. */
+  const portraitAt = ref<string | null>(null)
   const draft = ref<CharacterDraft>(emptyDraft())
   /** Tracking ved bordet (HP, brugte slots …) – adskilt fra selve bygget. */
   const play = ref<PlayState>(emptyPlay())
@@ -150,6 +152,7 @@ export const useCharacterStore = defineStore('character', () => {
       const loadedPlay = sanitizePlay(storedPlay, derive(loaded, storedPlay?.items ? gearFromItems(storedPlay.items) : undefined))
       persisted = JSON.stringify({ draft: loaded, play: loadedPlay })
       characterId.value = record.id
+      portraitAt.value = record.portrait_at
       draft.value = loaded
       play.value = loadedPlay
       saveStatus.value = 'idle'
@@ -180,8 +183,11 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   return {
-    characterId, draft, play, gear, derived, items, ensureItems, level, loading, loadError, saveStatus, saveError,
+    characterId, portraitAt, draft, play, gear, derived, items, ensureItems, level, loading, loadError, saveStatus, saveError,
     steps, stepIssues, progressionIssues, isStepUnlocked, firstOpenStep,
     load, flush, complete, levelUp, levelDown,
   }
 })
+
+// Under udvikling: erstat store'en ved ændringer, i stedet for at beholde den gamle instans med forældede felter
+if (import.meta.hot) import.meta.hot.accept(acceptHMRUpdate(useCharacterStore, import.meta.hot))

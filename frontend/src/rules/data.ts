@@ -148,6 +148,10 @@ export interface Species {
   spells?: string[]
   /** Fast spellcasting-evne; ellers bruges valget 'castingAbility'. */
   spellAbility?: Ability
+  /** Mekaniske effekter alle af denne species får (fx en fast skill). */
+  effects?: OptionEffects
+  /** Species fra 2014-reglerne, tilpasset 2024: ingen ability-bonusser, de kommer fra baggrunden. */
+  legacy?: boolean
 }
 
 export const SPECIES: Species[] = [
@@ -243,6 +247,25 @@ export const SPECIES: Species[] = [
         { id: 'storm', name: "Storm's Thunder", text: 'Reaction: 1d8 thunder damage mod den der skader dig.' },
       ],
     }],
+  },
+  {
+    id: 'half-elf', name: 'Half-Elf', blurb: 'Fra 2014-reglerne: arv fra både elvere og mennesker.', legacy: true,
+    sizes: ['Medium'], speed: 30, darkvision: 60,
+    traits: [
+      { name: 'Fey Ancestry', text: 'Advantage på saves mod charmed, og magi kan ikke få dig til at sove.' },
+      { name: 'Skill Versatility', text: 'Proficiency i to valgfri skills.' },
+    ],
+    skillGrant: { count: 2, from: 'any', label: 'Skill Versatility (Half-Elf)' },
+  },
+  {
+    id: 'half-orc', name: 'Half-Orc', blurb: 'Fra 2014-reglerne: orkisk styrke og menneskelig vilje.', legacy: true,
+    sizes: ['Medium'], speed: 30, darkvision: 60,
+    traits: [
+      { name: 'Menacing', text: 'Proficiency i Intimidation.' },
+      { name: 'Relentless Endurance', text: 'Når du falder til 0 HP uden at dø, kan du gå til 1 HP i stedet, én gang pr. long rest.' },
+      { name: 'Savage Attacks', text: 'Ved et critical hit med et melee-våben slår du én af våbnets damage-terninger en ekstra gang.' },
+    ],
+    effects: { skillProficiencies: ['intimidation'] },
   },
   {
     id: 'halfling', name: 'Halfling', blurb: 'Små, modige og forbløffende heldige.',

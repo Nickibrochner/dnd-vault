@@ -24,6 +24,7 @@
           :key="s.id"
           :title="s.name"
           :subtitle="`${s.sizes.join(' / ')} · ${s.speed} ft.${s.darkvision ? ` · Darkvision ${s.darkvision} ft.` : ''}`"
+          :badge="s.legacy ? 'Legacy' : undefined"
           :selected="draft.speciesId === s.id"
           @click="draft.speciesId = s.id"
         >{{ s.blurb }}</OptionCard>

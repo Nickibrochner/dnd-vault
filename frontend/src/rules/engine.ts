@@ -274,8 +274,10 @@ function entryEffects(d: CharacterDraft, entry: ClassEntry): OptionEffects[] {
 
 /** Alle mekaniske effekter fra species, klasser og feats. */
 function activeEffects(d: CharacterDraft): OptionEffects[] {
+  const species = findSpecies(d.speciesId)
   return [
-    ...chosenOptions(findSpecies(d.speciesId)?.choices, d.speciesChoices).flatMap(o => (o.effects ? [o.effects] : [])),
+    ...(species?.effects ? [species.effects] : []),
+    ...chosenOptions(species?.choices, d.speciesChoices).flatMap(o => (o.effects ? [o.effects] : [])),
     ...classEntries(d).flatMap(e => entryEffects(d, e)),
     ...featsOf(d).flatMap(({ feat }) => (feat.effects ? [feat.effects] : [])),
   ]

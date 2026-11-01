@@ -10,7 +10,9 @@
     <template v-else-if="ready">
       <!-- Hoved -->
       <header class="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div class="flex items-start gap-4">
+        <PortraitUpload :name="store.draft.name" />
+        <div class="pt-1">
           <h2 class="text-3xl font-bold">{{ store.draft.name || 'Unavngiven' }}</h2>
           <div class="text-gray-300">
             Level {{ x.level }} {{ [x.species?.name, x.classText].filter(Boolean).join(' ') }}
@@ -24,6 +26,7 @@
             class="tag !normal-case !text-xs mt-1 text-yellow-300 border-yellow-600/60"
             title="Nogle værdier er sat manuelt i stedet for at blive beregnet"
           >✎ Manuelle rettelser</component>
+        </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <SaveIndicator />
@@ -290,6 +293,7 @@ import SpellsPanel from '../components/sheet/SpellsPanel.vue'
 import SpellsTab from '../components/sheet/SpellsTab.vue'
 import OverridesTab from '../components/sheet/OverridesTab.vue'
 import PanelLayout from '../components/ui/PanelLayout.vue'
+import PortraitUpload from '../components/sheet/PortraitUpload.vue'
 import { useSettings } from '../composables/useSettings'
 
 const route = useRoute()
