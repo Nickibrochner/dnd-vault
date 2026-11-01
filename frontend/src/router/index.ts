@@ -11,8 +11,8 @@ const router = createRouter({
     // Trinene defineres ét sted (STEPS i rules/engine.ts); wizarden validerer :step selv
     { path: '/builder/:charId(\\d+)/:step?', component: CharacterWizard },
     { path: '/character/:charId(\\d+)/level-up', component: LevelUp },
-    // Arkets faner: /character/1, /character/1/udstyr, /character/1/spells
-    { path: '/character/:charId(\\d+)/:tab(udstyr|spells)?', component: CharacterSheet },
+    // Arkets faner: /character/1, /character/1/udstyr, /character/1/spells – og /rettelser med manuel redigering
+    { path: '/character/:charId(\\d+)/:tab(udstyr|spells|rettelser)?', component: CharacterSheet },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ]
 })

@@ -17,6 +17,13 @@
             <span v-if="subclassText" class="text-gray-400">({{ subclassText }})</span>
           </div>
           <div class="text-sm text-gray-500">{{ [x.background?.name, store.draft.alignment].filter(Boolean).join(' · ') }}</div>
+          <component
+            :is="settings.manualEditing ? 'router-link' : 'span'"
+            v-if="x.overridden.length || store.draft.overrides.features?.length || store.draft.overrides.spells?.length"
+            :to="`/character/${charId}/rettelser`"
+            class="tag !normal-case !text-xs mt-1 text-yellow-300 border-yellow-600/60"
+            title="Nogle værdier er sat manuelt i stedet for at blive beregnet"
+          >✎ Manuelle rettelser</component>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <SaveIndicator />
@@ -74,6 +81,7 @@
 
       <InventoryTab v-if="tab === 'udstyr'" />
       <SpellsTab v-else-if="tab === 'spells'" />
+      <OverridesTab v-else-if="tab === 'rettelser'" />
 
       <template v-else>
       <!-- Kampværdier -->
@@ -284,6 +292,8 @@ import InventoryTab from '../components/sheet/InventoryTab.vue'
 import ResourceList from '../components/sheet/ResourceList.vue'
 import SpellsPanel from '../components/sheet/SpellsPanel.vue'
 import SpellsTab from '../components/sheet/SpellsTab.vue'
+import OverridesTab from '../components/sheet/OverridesTab.vue'
+import { useSettings } from '../composables/useSettings'
 
 const route = useRoute()
 const { store, charId, ready } = useCharacterPage()
@@ -291,11 +301,17 @@ const x = computed(() => store.derived)
 
 const ARMOR_NAMES = { light: 'Light', medium: 'Medium', heavy: 'Heavy', shield: 'Shields' } as const
 
-const tab = computed(() => (route.params.tab as string) || 'ark')
+const settings = useSettings()
+/** Rettelser-fanen findes kun med manuel redigering slået til. */
+const tab = computed(() => {
+  const t = (route.params.tab as string) || 'ark'
+  return t === 'rettelser' && !settings.manualEditing ? 'ark' : t
+})
 const TABS = computed(() => [
   { id: 'ark', name: 'Ark', count: 0 },
   { id: 'udstyr', name: 'Udstyr', count: store.items.length },
   { id: 'spells', name: 'Spells', count: x.value.spells.length },
+  ...(settings.manualEditing ? [{ id: 'rettelser', name: '✎ Rettelser', count: x.value.overridden.length }] : []),
 ])
 
 const equipped = computed(() => store.items.filter(i => i.equipped))

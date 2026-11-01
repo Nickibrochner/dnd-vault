@@ -39,6 +39,15 @@ Et værktøj til at bygge og spille D&D-karakterer efter 2024-reglerne (5.5e). M
 
 Alt gemmes automatisk.
 
+### Manuel redigering
+
+Til karakterer, der overføres fra et andet system eller en anden udgave. Slå **Manuel redigering** til under tandhjulet øverst til højre (indstillingen gemmes i browseren). Så får arket fanen **Rettelser**:
+
+- Overstyr ability scores og proficiency bonus. Det slår igennem på alt, der afledes af dem.
+- Overstyr max HP, AC, initiative, speed, saves, skills, passive perception, spell save DC, spell attack og spell slots.
+- Tilføj egne features og spells uden for klassens liste.
+- Et tomt felt bruger den beregnede værdi, og arket markerer, når der er rettelser.
+
 ## Kom i gang
 
 Kræver Docker med Docker Compose.

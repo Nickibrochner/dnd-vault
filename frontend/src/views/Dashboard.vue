@@ -35,6 +35,10 @@
               <router-link :to="`/character/${c.id}/level-up`" class="text-sm px-3 py-1 rounded border border-gray-600 text-gray-300 hover:border-red-500">Level up</router-link>
               <router-link :to="`/builder/${c.id}`" class="text-sm px-3 py-1 rounded border border-gray-600 text-gray-300 hover:border-gray-400">Redigér</router-link>
             </div>
+            <div v-if="settings.manualEditing" class="flex gap-1.5">
+              <router-link v-if="!c.sheet_data?.summary?.completed" :to="`/character/${c.id}`" class="text-sm px-3 py-1 rounded border border-gray-600 text-gray-300 hover:border-gray-400">Ark</router-link>
+              <router-link :to="`/character/${c.id}/rettelser`" class="text-sm px-3 py-1 rounded border border-yellow-600/60 text-yellow-300 hover:border-yellow-500">✎ Rettelser</router-link>
+            </div>
             <button
               type="button"
               class="text-sm px-3 py-1 rounded border transition-colors"
@@ -44,16 +48,17 @@
           </div>
         </li>
       </ul>
-    </section>
-  </div>
+    </section>  </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, type CharacterRecord } from '../api'
+import { useSettings } from '../composables/useSettings'
 
 const router = useRouter()
+const settings = useSettings()
 const characters = ref<CharacterRecord[]>([])
 const loading = ref(true)
 const creating = ref(false)

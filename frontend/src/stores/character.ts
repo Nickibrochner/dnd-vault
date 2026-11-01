@@ -180,7 +180,7 @@ export const useCharacterStore = defineStore('character', () => {
   }
 
   return {
-    characterId, draft, play, derived, items, ensureItems, level, loading, loadError, saveStatus, saveError,
+    characterId, draft, play, gear, derived, items, ensureItems, level, loading, loadError, saveStatus, saveError,
     steps, stepIssues, progressionIssues, isStepUnlocked, firstOpenStep,
     load, flush, complete, levelUp, levelDown,
   }

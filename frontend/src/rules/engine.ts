@@ -83,8 +83,39 @@ export interface CharacterDraft {
   classEquipment: string | null
   backgroundEquipment: string | null
   levels: LevelUp[]
+  /** Manuelle rettelser oven på regelmotoren – fx når en karakter overføres fra et andet system. */
+  overrides: Overrides
   completed: boolean
 }
+
+/** Tomme felter betyder "brug den beregnede værdi". */
+export interface Overrides {
+  /** Endelige ability scores – slår igennem på alt afledt (modifiers, saves, skills, angreb …). */
+  scores?: Partial<Record<Ability, number>>
+  pb?: number
+  hp?: number
+  ac?: number
+  initiative?: number
+  speed?: number
+  passivePerception?: number
+  /** Samlet bonus pr. save. */
+  saves?: Partial<Record<Ability, number>>
+  /** Samlet bonus pr. skill. */
+  skills?: Partial<Record<SkillId, number>>
+  spellSaveDc?: number
+  spellAttack?: number
+  /** Max spell slots pr. spell-level (index 0 = level 1); null = beregnet. */
+  spellSlots?: (number | null)[]
+  /** Egne features, fx fra et andet regelsæt. */
+  features?: { name: string; text: string }[]
+  /** Ekstra spells uden for klassens liste. */
+  spells?: string[]
+}
+
+export const OVERRIDE_LIMITS = {
+  score: [1, 30], pb: [0, 10], hp: [1, 999], ac: [0, 40], initiative: [-10, 20], speed: [0, 200],
+  passivePerception: [0, 40], bonus: [-10, 30], spellSaveDc: [0, 40], spellAttack: [-10, 30], slots: [0, 9],
+} as const
 
 export const equipmentKey = (ownerId: string, optionId: string) => `${ownerId}:${optionId}`
 
@@ -103,6 +134,7 @@ export function emptyDraft(): CharacterDraft {
     spellPicks: {}, spellAbilities: {},
     classEquipment: null, backgroundEquipment: null,
     levels: [],
+    overrides: {},
     completed: false,
   }
 }
@@ -272,6 +304,12 @@ export function abilityBonuses(d: CharacterDraft): Record<Ability, number> {
  * Epic Boons (max 30) og capstones som Primal Champion (max 25).
  */
 export function abilityScores(d: CharacterDraft, upToLevel = characterLevel(d)): Record<Ability, number> {
+  const scores = rawAbilityScores(d, upToLevel)
+  // Manuelle scores gælder karakteren, som den er nu – ikke de tidligere levels
+  return upToLevel >= characterLevel(d) ? { ...scores, ...d.overrides?.scores } : scores
+}
+
+function rawAbilityScores(d: CharacterDraft, upToLevel: number): Record<Ability, number> {
   const bonuses = abilityBonuses(d)
   const scores = {} as Record<Ability, number>
   for (const { key } of ABILITIES) scores[key] = Math.min(ABILITY_CAP, (d.baseScores[key] ?? 10) + bonuses[key])
@@ -760,6 +798,42 @@ function sanitizeFeat(d: CharacterDraft, lu: LevelUp, level: number): LevelUp {
  * Fjerner valg der ikke længere er gyldige efter en ændring – fx subclass-afhængige felter når klassen
  * skiftes, eller et skill-valg der nu gives gratis af baggrunden. Returnerer et nyt draft.
  */
+/** Rydder rettelserne: kun hele tal inden for grænserne; tomme felter fjernes, så de beregnede værdier gælder. */
+export function sanitizeOverrides(input: unknown): Overrides {
+  const o = (input && typeof input === 'object' ? input : {}) as Overrides
+  const num = (v: unknown, [min, max]: readonly [number, number]) =>
+    typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : undefined
+  const record = <K extends string>(r: unknown, keys: readonly K[], limits: readonly [number, number]) => {
+    const out: Partial<Record<K, number>> = {}
+    for (const k of keys) {
+      const v = num((r as Record<string, unknown> | undefined)?.[k], limits)
+      if (v !== undefined) out[k] = v
+    }
+    return Object.keys(out).length ? out : undefined
+  }
+  const L = OVERRIDE_LIMITS
+  const abilities = ABILITIES.map(a => a.key)
+  const out: Overrides = {
+    scores: record(o.scores, abilities, L.score),
+    pb: num(o.pb, L.pb), hp: num(o.hp, L.hp), ac: num(o.ac, L.ac), initiative: num(o.initiative, L.initiative),
+    speed: num(o.speed, L.speed), passivePerception: num(o.passivePerception, L.passivePerception),
+    saves: record(o.saves, abilities, L.bonus),
+    skills: record(o.skills, SKILLS.map(s => s.id as SkillId), L.bonus),
+    spellSaveDc: num(o.spellSaveDc, L.spellSaveDc), spellAttack: num(o.spellAttack, L.spellAttack),
+  }
+  if (Array.isArray(o.spellSlots)) {
+    const slots = Array.from({ length: 9 }, (_, i) => num(o.spellSlots![i], L.slots) ?? null)
+    if (slots.some(s => s !== null)) out.spellSlots = slots
+  }
+  // Features beholdes, også tomme, så en ny række kan udfyldes
+  if (Array.isArray(o.features) && o.features.length) {
+    out.features = o.features.map(f => ({ name: String(f?.name ?? ''), text: String(f?.text ?? '') }))
+  }
+  const spells = Array.isArray(o.spells) ? [...new Set(o.spells.filter(id => findSpell(id)))] : []
+  if (spells.length) out.spells = spells
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined)) as Overrides
+}
+
 export function sanitize(input: CharacterDraft): CharacterDraft {
   // JSON-kloning frem for structuredClone: input kan være en reaktiv Vue-proxy, som structuredClone afviser
   const raw = JSON.parse(JSON.stringify(input)) as CharacterDraft & { expertise?: SkillId[] }
@@ -875,6 +949,7 @@ export function sanitize(input: CharacterDraft): CharacterDraft {
   if (!cls?.equipment.some(e => equipmentKey(cls.id, e.id) === d.classEquipment)) d.classEquipment = null
   if (!bg || ![equipmentKey(bg.id, 'A'), equipmentKey(bg.id, 'B')].includes(d.backgroundEquipment ?? '')) d.backgroundEquipment = null
 
+  d.overrides = sanitizeOverrides(d.overrides)
   return d
 }
 
@@ -1145,6 +1220,8 @@ export interface Derived {
   /** Ressourcer med begrænset brug (Rage, Ki, Channel Divinity …) – spell slots og hit dice er separate. */
   resources: Resource[]
   warnings: string[]
+  /** Værdier der er sat manuelt, fx 'hp', 'ac', 'score:str', 'skill:stealth'. */
+  overridden: string[]
 }
 
 /** Species-ressourcer, der skal kunne krydses af på arket. */
@@ -1219,11 +1296,11 @@ export function derive(d: CharacterDraft, gear: Gear = startingGear(d)): Derived
   const background = findBackground(d.backgroundId)
   const effects = activeEffects(d)
   const feats = featsOf(d)
-  const pb = proficiencyBonus(level)
+  const pb = d.overrides?.pb ?? proficiencyBonus(level)
   const warnings: string[] = []
 
   const bonuses = abilityBonuses(d)
-  const abilitiesComplete = ABILITIES.every(({ key }) => d.baseScores[key] !== null)
+  const abilitiesComplete = ABILITIES.every(({ key }) => d.baseScores[key] !== null || d.overrides?.scores?.[key] !== undefined)
   const scores = abilityScores(d)
   const mods = {} as Record<Ability, number>
   for (const { key } of ABILITIES) mods[key] = modifier(scores[key])
@@ -1444,7 +1521,7 @@ export function derive(d: CharacterDraft, gear: Gear = startingGear(d)): Derived
   }
 
   const classes = entries.map(e => ({ cls: e.cls, level: e.level, subclass: e.sub }))
-  return {
+  return applyOverrides(d, {
     level, species, cls, subclass, classes,
     classText: multi ? classes.map(c => `${c.cls.name} ${c.level}`).join(' / ') : (cls?.name ?? ''),
     background, scores, mods, bonuses, abilitiesComplete, pb,
@@ -1458,8 +1535,72 @@ export function derive(d: CharacterDraft, gear: Gear = startingGear(d)): Derived
     armorTraining: training, weaponTraining: weaponTrainingText(d),
     tools, languages, features, feats: featList, equipment, gold, attacks,
     carryCapacity: scores.str * 15 * (species?.id === 'goliath' ? 2 : 1),
-    spellcasting, spells, spellStats, resources, warnings,
+    spellcasting, spells, spellStats, resources, warnings, overridden: [],
+  })
+}
+
+/** Lægger de manuelle rettelser oven på de beregnede værdier og noterer, hvad der er rettet. */
+function applyOverrides(d: CharacterDraft, x: Derived): Derived {
+  const o = d.overrides ?? {}
+  const overridden: string[] = [...Object.keys(o.scores ?? {}).map(k => `score:${k}`)]
+  if (o.pb !== undefined) overridden.push('pb')
+  const manual = (calculated: number) => `Manuelt sat (beregnet: ${calculated})`
+
+  if (o.hp !== undefined) { x.hpBreakdown = manual(x.hp); x.hp = o.hp; overridden.push('hp') }
+  if (o.ac !== undefined) { x.acBreakdown = manual(x.ac); x.ac = o.ac; overridden.push('ac') }
+  if (o.initiative !== undefined) { x.initiative = o.initiative; overridden.push('initiative') }
+  if (o.speed !== undefined) { x.speed = o.speed; overridden.push('speed') }
+  x.saves = x.saves.map(s => {
+    const bonus = o.saves?.[s.ability]
+    if (bonus === undefined) return s
+    overridden.push(`save:${s.ability}`)
+    return { ...s, bonus }
+  })
+  x.skills = x.skills.map(s => {
+    const bonus = o.skills?.[s.id]
+    if (bonus === undefined) return s
+    overridden.push(`skill:${s.id}`)
+    return { ...s, bonus }
+  })
+  // Passiv Perception følger en rettet Perception, medmindre den selv er rettet
+  if (o.passivePerception !== undefined) { x.passivePerception = o.passivePerception; overridden.push('passivePerception') }
+  else if (o.skills?.perception !== undefined) x.passivePerception = 10 + o.skills.perception
+
+  // Spellcasting: rettede slots kan også give slots til en karakter, regelmotoren ikke ser som caster
+  if (o.spellSlots?.some(s => s !== null) && !x.spellcasting) {
+    const ability = x.spellStats[0]?.ability ?? 'int'
+    x.spellcasting = { ability, saveDc: 8 + x.pb + x.mods[ability], attack: x.pb + x.mods[ability], cantrips: 0, prepared: 0, slots: [] }
   }
+  if (x.spellcasting) {
+    const sc = x.spellcasting
+    if (o.spellSlots) {
+      const slots = Array.from({ length: 9 }, (_, i) => o.spellSlots![i] ?? sc.slots[i] ?? 0)
+      while (slots.length && !slots[slots.length - 1]) slots.pop()
+      sc.slots = slots
+      overridden.push('spellSlots')
+    }
+    if (o.spellSaveDc !== undefined) { sc.saveDc = o.spellSaveDc; overridden.push('spellSaveDc') }
+    if (o.spellAttack !== undefined) { sc.attack = o.spellAttack; overridden.push('spellAttack') }
+  }
+  if (o.spellSaveDc !== undefined || o.spellAttack !== undefined) {
+    x.spellStats = x.spellStats.map(s => ({ ...s, saveDc: o.spellSaveDc ?? s.saveDc, attack: o.spellAttack ?? s.attack }))
+  }
+
+  for (const f of o.features ?? []) {
+    if (f.name.trim()) x.features.push({ level: x.level, source: 'Manuelt', name: f.name.trim(), text: f.text.trim() })
+  }
+  const known = new Set(x.spells.map(s => s.spell.id))
+  for (const id of o.spells ?? []) {
+    const spell = findSpell(id)
+    if (spell && !known.has(id)) x.spells.push({ spell, source: 'Manuelt', ability: x.spellcasting?.ability ?? null })
+  }
+  x.spells.sort((a, b) => a.spell.level - b.spell.level || a.spell.name.localeCompare(b.spell.name))
+  if (x.spells.length && !x.spellStats.length && x.spellcasting) {
+    x.spellStats = [{ ability: x.spellcasting.ability, saveDc: x.spellcasting.saveDc, attack: x.spellcasting.attack, sources: ['Manuelt'] }]
+  }
+
+  x.overridden = overridden
+  return x
 }
 
 /** Kort resumé, som gemmes ved siden af draftet, så lister kan vises uden at køre regelmotoren. */

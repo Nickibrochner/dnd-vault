@@ -11,7 +11,7 @@
 
     <!-- Spell slots -->
     <div v-if="x.spellcasting?.slots.length || x.spellcasting?.pact" class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-      <div v-for="(max, i) in x.spellcasting.slots" :key="i" class="flex items-center justify-between gap-2">
+      <div v-for="(max, i) in x.spellcasting.slots" v-show="max" :key="i" class="flex items-center justify-between gap-2">
         <span class="text-sm text-gray-300">Level {{ i + 1 }}</span>
         <Pips :label="`Level ${i + 1}-slots`" :max="max" :used="play.used[slotKey(i + 1)] ?? 0" @update:used="setUsed(slotKey(i + 1), $event)" />
       </div>
