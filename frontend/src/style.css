@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .field {
+    @apply w-full bg-gray-900 border border-gray-600 rounded p-3 text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors;
+  }
+  .panel {
+    @apply bg-gray-900 p-5 rounded-lg border border-gray-700;
+  }
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3;
+  }
+  .label {
+    @apply text-xs font-semibold uppercase tracking-wide text-gray-500;
+  }
+  .tag {
+    @apply inline-block text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border;
+  }
+  .stat {
+    @apply bg-gray-800/60 rounded p-3 border border-gray-700;
+  }
+  .stat dt {
+    @apply text-xs uppercase tracking-wide text-gray-500;
+  }
+  .stat dd {
+    @apply text-lg font-bold text-gray-100;
+  }
+  .mini-stat {
+    @apply bg-gray-900 rounded p-2 border border-gray-700;
+  }
+  .mini-stat dt {
+    @apply text-[10px] uppercase tracking-wide text-gray-500;
+  }
+  .mini-stat dd {
+    @apply font-bold text-gray-100 font-mono;
+  }
+  .btn-secondary {
+    @apply px-3 py-2 rounded text-sm bg-gray-800 border border-gray-600 text-gray-200 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors;
+  }
+  .step-btn {
+    @apply w-8 h-8 rounded bg-gray-800 border border-gray-600 text-gray-200 hover:border-red-500 disabled:opacity-30 disabled:cursor-not-allowed;
+  }
+}
